@@ -526,17 +526,41 @@
   }
 
   // Notificaciones Toast (Heurística 1 de Nielsen: Visibilidad del Sistema)
+  // Duración reducida a menos de 1 segundo (800ms) y posibilidad de omitir de inmediato
   function showToast(message, type = "info") {
     const container = document.getElementById("toastContainer");
     if (!container) return;
+    
+    // Evitar acumulación: mantener máximo 2 notificaciones activas
+    if (container.children.length >= 2) {
+      const oldest = container.firstElementChild;
+      if (oldest) oldest.remove();
+    }
+
     const toast = document.createElement("div");
     toast.className = `toast-message toast-${type}`;
-    toast.textContent = message;
+    toast.title = "Haz clic para omitir";
+    toast.innerHTML = `
+      <span class="toast-text">${message}</span>
+      <button class="toast-close" title="Omitir">&times;</button>
+    `;
     container.appendChild(toast);
-    setTimeout(() => {
-      toast.style.animation = "toastOut 0.3s forwards ease";
-      setTimeout(() => toast.remove(), 300);
-    }, 2800);
+
+    let dismissed = false;
+    const dismiss = (e) => {
+      if (e) e.stopPropagation();
+      if (dismissed) return;
+      dismissed = true;
+      clearTimeout(timer);
+      toast.style.animation = "toastOut 0.15s forwards ease";
+      setTimeout(() => toast.remove(), 150);
+    };
+
+    // Omitir al hacer clic en cualquier parte de la notificación o en la cruz
+    toast.addEventListener("click", dismiss);
+
+    // Auto-cierre antes de 1 segundo (800ms)
+    const timer = setTimeout(dismiss, 800);
   }
 
   function setupEventListeners() {

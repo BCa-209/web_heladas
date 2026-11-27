@@ -1250,15 +1250,46 @@ kbd {
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-left: 4px solid #38bdf8;
   color: #fff;
-  padding: 10px 16px;
+  padding: 8px 12px;
   border-radius: 6px;
   font-size: 12px;
   font-family: var(--font-mono);
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
   opacity: 0;
   transform: translateY(-10px);
-  animation: toastIn 0.3s forwards cubic-bezier(0.16, 1, 0.3, 1);
+  animation: toastIn 0.15s forwards cubic-bezier(0.16, 1, 0.3, 1);
   pointer-events: auto;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  transition: transform 0.1s, opacity 0.1s, background 0.15s;
+  user-select: none;
+}
+
+.toast-message:hover {
+  background: rgba(30, 41, 59, 0.98);
+}
+
+.toast-text {
+  flex: 1;
+}
+
+.toast-close {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: color 0.1s;
+}
+
+.toast-close:hover {
+  color: #fff;
 }
 
 .toast-message.toast-success { border-left-color: #10b981; }
