@@ -30,6 +30,12 @@ Plataforma geoespacial interactiva en 3D para la visualización, monitoreo y an�
 - **Captura de Pantalla:**
   - Exportación con un solo clic de capturas en alta resolución PNG (`.png`).
 
+- **Diseño Responsivo y Cumplimiento de las 10 Heurísticas de Usabilidad de Nielsen:**
+  - **100% Adaptable a Teléfonos Móviles y Tablets:** Gestos táctiles nativos (1 dedo rotar, 2 dedos zoom y paneo, toque simple para sondar coordenadas y riesgo), botones táctiles $\ge 44\text{ px}$ y controles plegables.
+  - **Visibilidad del Estado del Sistema:** Sistema de notificaciones *Toast* en tiempo real para cada acción (cambio de modelo, reproducción, salto de cámara, capturas).
+  - **Control y Libertad del Usuario:** Restablecimiento de vista en 1 clic (<kbd>R</kbd>), cierre con <kbd>Esc</kbd> o clic exterior, y minimización de paneles HUD.
+  - **Ayuda y Documentación Integrada:** Modal interactivo con manual de gestos, atajos y glosario científico.
+
 ---
 
 ## 🚀 Ejecución Local

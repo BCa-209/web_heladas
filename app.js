@@ -510,6 +510,7 @@
     if (state.isPlaying) {
       playIcon.classList.add('hidden');
       pauseIcon.classList.remove('hidden');
+      showToast("▶ Simulación en reproducción", "info");
       state.playInterval = setInterval(() => {
         const model = state.models[state.activeModelId];
         const next = (state.activeFrameIndex + 1) % model.frames.length;
@@ -520,7 +521,22 @@
       pauseIcon.classList.add('hidden');
       clearInterval(state.playInterval);
       state.playInterval = null;
+      showToast("⏸ Simulación pausada", "info");
     }
+  }
+
+  // Notificaciones Toast (Heurística 1 de Nielsen: Visibilidad del Sistema)
+  function showToast(message, type = "info") {
+    const container = document.getElementById("toastContainer");
+    if (!container) return;
+    const toast = document.createElement("div");
+    toast.className = `toast-message toast-${type}`;
+    toast.textContent = message;
+    container.appendChild(toast);
+    setTimeout(() => {
+      toast.style.animation = "toastOut 0.3s forwards ease";
+      setTimeout(() => toast.remove(), 300);
+    }, 2800);
   }
 
   function setupEventListeners() {
@@ -528,6 +544,8 @@
     document.querySelectorAll('.model-pill').forEach(btn => {
       btn.addEventListener('click', () => {
         updateActiveModel(btn.dataset.model);
+        const model = state.models[btn.dataset.model];
+        if (model) showToast(`Modelo seleccionado: ${model.name}`, "info");
       });
     });
 
@@ -555,6 +573,7 @@
         btn.classList.add('active');
         const s = parseInt(btn.dataset.speed, 10);
         state.playSpeed = 1000 / s;
+        showToast(`Velocidad de reproducción ajustada a ${s}x`, "info");
         if (state.isPlaying) {
           togglePlay();
           togglePlay();
@@ -562,7 +581,7 @@
       });
     });
 
-    // Salto al pico crítico
+    // Salto al pico crítico (Heurística 7: Flexibilidad y Eficiencia)
     btnJumpPeak.addEventListener('click', () => {
       const model = state.models[state.activeModelId];
       let maxProb = -1;
@@ -574,9 +593,10 @@
         }
       });
       updateSimulationFrame(peakIdx);
+      showToast(`⚡ Mostrando momento de helada crítica (${(maxProb * 100).toFixed(1)}% riesgo máx)`, "warn");
     });
 
-    // Búsqueda de Fecha por Teclado (Reproduce la funcionalidad de renderer.py)
+    // Búsqueda de Fecha por Teclado (Heurísticas 5 y 9: Prevención y Diagnóstico de Errores)
     function executeDateSearch() {
       const query = inputSearchDate.value.trim().toLowerCase();
       if (!query) return;
@@ -585,9 +605,11 @@
       if (foundIdx !== -1) {
         updateSimulationFrame(foundIdx);
         inputSearchDate.style.borderColor = '#10b981';
+        showToast(`✓ Fecha encontrada: ${model.frames[foundIdx].timestamp}`, "success");
       } else {
         inputSearchDate.style.borderColor = '#ef4444';
         setTimeout(() => { inputSearchDate.style.borderColor = ''; }, 1500);
+        showToast(`❌ No se encontró esa fecha. Prueba con '2020-06-15 05:00:00' o el botón 'Pico Crítico'`, "error");
       }
     }
 
@@ -596,7 +618,7 @@
       if (e.key === 'Enter') executeDateSearch();
     });
 
-    // Atajos de Teclado Globales (Compatibilidad con renderer.py)
+    // Atajos de Teclado Globales (Heurística 7: Flexibilidad y Eficiencia)
     window.addEventListener('keydown', (e) => {
       if (document.activeElement === inputSearchDate) return;
       if (e.code === 'Space') {
@@ -609,6 +631,17 @@
         const model = state.models[state.activeModelId];
         const prev = (state.activeFrameIndex - 1 + model.frames.length) % model.frames.length;
         updateSimulationFrame(prev);
+      } else if (e.key === 'w' || e.key === 'W') {
+        modeWireframe.click();
+      } else if (e.key === 's' || e.key === 'S') {
+        modeShaded.click();
+      } else if (e.key === 'r' || e.key === 'R') {
+        btnResetView.click();
+      } else if (e.key === 'Escape') {
+        modalMetrics.classList.add('hidden');
+        const modalHelp = document.getElementById('modalHelp');
+        if (modalHelp) modalHelp.classList.add('hidden');
+        telemetrySidebar.classList.add('collapsed');
       }
     });
 
@@ -619,6 +652,7 @@
       terrainWireframeMesh.visible = false;
       setActiveModeBtn(modeShaded);
       updateSimulationFrame(state.activeFrameIndex);
+      showToast("Modo Superficie Sombreada activado", "info");
     });
 
     modeWireframe.addEventListener('click', () => {
@@ -627,6 +661,7 @@
       terrainWireframeMesh.visible = true;
       setActiveModeBtn(modeWireframe);
       updateSimulationFrame(state.activeFrameIndex);
+      showToast("Modo Malla Wireframe activado (PyOpenGL clásico)", "info");
     });
 
     modeContour.addEventListener('click', () => {
@@ -635,6 +670,7 @@
       terrainWireframeMesh.visible = false;
       setActiveModeBtn(modeContour);
       updateSimulationFrame(state.activeFrameIndex);
+      showToast("Modo Hipsométrico / Relieve activado", "info");
     });
 
     function setActiveModeBtn(activeBtn) {
@@ -647,16 +683,19 @@
       controls.reset();
       camera.position.set(0, 90, 110);
       controls.target.set(0, 0, 0);
+      showToast("Perspectiva 3D libre", "info");
     });
 
     camPresetTop.addEventListener('click', () => {
       camera.position.set(0, 140, 0.001);
       controls.target.set(0, 0, 0);
+      showToast("Vista Cenital (Norte arriba)", "info");
     });
 
     camPresetSide.addEventListener('click', () => {
       camera.position.set(0, 20, 120);
       controls.target.set(0, 10, 0);
+      showToast("Perfil lateral del relieve", "info");
     });
 
     // Control de Exageración Z
@@ -670,12 +709,14 @@
       controls.autoRotate = state.autoRotate;
       controls.autoRotateSpeed = 1.2;
       btnAutoRotate.classList.toggle('active', state.autoRotate);
+      showToast(state.autoRotate ? "Auto-rotación activada" : "Auto-rotación pausada", "info");
     });
 
     btnResetView.addEventListener('click', () => {
       controls.reset();
       camera.position.set(0, 90, 110);
       controls.target.set(0, 0, 0);
+      showToast("Vista restablecida a posición inicial", "info");
     });
 
     // Captura de Pantalla
@@ -686,10 +727,40 @@
       a.href = dataURL;
       a.download = `heladas_altiplano_${state.activeModelId}_frame${state.activeFrameIndex}.png`;
       a.click();
+      showToast("📸 Captura de pantalla descargada en alta resolución", "success");
     });
 
-    // Hover Inspector en el Terreno 3D
-    viewportContainer.addEventListener('mousemove', onCanvasMouseMove);
+    // Sondaje de Coordenadas (Cursor en Desktop y Toque en Móviles)
+    viewportContainer.addEventListener('mousemove', onCanvasPointerEvent);
+    canvas.addEventListener('click', onCanvasPointerEvent);
+    canvas.addEventListener('touchstart', onCanvasPointerEvent, { passive: true });
+
+    // Botones de Minimización de HUD y Leyenda (Heurística 8: Diseño Minimalista)
+    const btnToggleHudGeo = document.getElementById('btnToggleHudGeo');
+    const hudOverlayGeo = document.getElementById('hudOverlayGeo');
+    if (btnToggleHudGeo && hudOverlayGeo) {
+      btnToggleHudGeo.addEventListener('click', () => {
+        hudOverlayGeo.classList.toggle('collapsed-hud');
+        btnToggleHudGeo.querySelector('.min-icon').textContent = hudOverlayGeo.classList.contains('collapsed-hud') ? '+' : '−';
+      });
+    }
+
+    const btnToggleLegend = document.getElementById('btnToggleLegend');
+    const riskLegendBox = document.getElementById('riskLegendBox');
+    if (btnToggleLegend && riskLegendBox) {
+      btnToggleLegend.addEventListener('click', () => {
+        riskLegendBox.classList.toggle('collapsed-hud');
+        btnToggleLegend.querySelector('.min-icon').textContent = riskLegendBox.classList.contains('collapsed-hud') ? '+' : '−';
+      });
+    }
+
+    const btnCloseInspector = document.getElementById('btnCloseInspector');
+    if (btnCloseInspector) {
+      btnCloseInspector.addEventListener('click', () => {
+        probeMarker.visible = false;
+        hudInspector.style.opacity = '0';
+      });
+    }
 
     // Sidebar Toggle
     btnToggleSidebar.addEventListener('click', () => {
@@ -711,13 +782,37 @@
     modalMetrics.addEventListener('click', (e) => {
       if (e.target === modalMetrics) modalMetrics.classList.add('hidden');
     });
+
+    // Modal de Ayuda (Heurística 10 de Nielsen)
+    const btnOpenHelp = document.getElementById('btnOpenHelp');
+    const modalHelp = document.getElementById('modalHelp');
+    const btnCloseHelpModal = document.getElementById('btnCloseHelpModal');
+    if (btnOpenHelp && modalHelp) {
+      btnOpenHelp.addEventListener('click', () => {
+        modalHelp.classList.remove('hidden');
+      });
+    }
+    if (btnCloseHelpModal && modalHelp) {
+      btnCloseHelpModal.addEventListener('click', () => {
+        modalHelp.classList.add('hidden');
+      });
+    }
+    if (modalHelp) {
+      modalHelp.addEventListener('click', (e) => {
+        if (e.target === modalHelp) modalHelp.classList.add('hidden');
+      });
+    }
   }
 
-  // --- 9. INSPECTOR DE CURSOR / RAYCASTING ---
-  function onCanvasMouseMove(event) {
+  // --- 9. INSPECTOR DE CURSOR / TOQUE TÁCTIL (RAYCASTING ADAPTATIVO) ---
+  function onCanvasPointerEvent(event) {
+    const clientX = event.clientX || (event.touches && event.touches[0] ? event.touches[0].clientX : null);
+    const clientY = event.clientY || (event.touches && event.touches[0] ? event.touches[0].clientY : null);
+    if (clientX === null || clientY === null) return;
+
     const rect = canvas.getBoundingClientRect();
-    mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-    mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+    mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
 
     raycaster.setFromCamera(mouse, camera);
     const intersects = raycaster.intersectObject(terrainMesh);
@@ -729,7 +824,6 @@
       probeMarker.position.y += 0.3;
 
       // Calcular Lat/Lon del punto de impacto en mundo
-      // Malla centrada [-50, 50]
       const pctX = (hit.point.x + 50) / 100;
       const pctZ = (hit.point.z + 50) / 100;
 
@@ -754,10 +848,10 @@
       inspAlt.textContent = `${Math.round(alt)} m`;
 
       let riskCat = 'Seguro';
-      let riskColor = '#10b981';
-      if (prob >= 0.75) { riskCat = 'Crítico'; riskColor = '#ef4444'; }
+      let riskColor = 'rgb(0, 204, 0)';
+      if (prob >= 0.75) { riskCat = 'Crítico'; riskColor = 'rgb(230, 0, 0)'; }
       else if (prob >= 0.5) { riskCat = 'Alto'; riskColor = '#f97316'; }
-      else if (prob >= 0.25) { riskCat = 'Moderado'; riskColor = '#eab308'; }
+      else if (prob >= 0.25) { riskCat = 'Moderado'; riskColor = 'rgb(230, 230, 0)'; }
 
       inspRisk.textContent = `${riskCat} (${(prob * 100).toFixed(1)}%)`;
       inspRisk.style.background = riskColor + '22';
@@ -765,7 +859,7 @@
       inspRisk.style.border = `1px solid ${riskColor}66`;
 
       hudInspector.style.opacity = '1';
-    } else {
+    } else if (event.type === 'mousemove') {
       probeMarker.visible = false;
       hudInspector.style.opacity = '0.6';
     }

@@ -1113,6 +1113,451 @@ body {
   line-height: 1.6;
 }
 
+/* ===================================================================
+   HEURÍSTICAS DE NIELSEN: ELEMENTOS DE FEEDBACK Y AYUDA
+   =================================================================== */
+
+/* Botones de minimización de HUD y Leyenda */
+.hud-header-bar,
+.legend-header-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.btn-hud-min {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-weight: 700;
+  transition: all 0.2s;
+  pointer-events: auto;
+}
+
+.btn-hud-min:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+.collapsed-hud .hud-body,
+.collapsed-hud .legend-body {
+  display: none !important;
+}
+
+.collapsed-hud {
+  padding-bottom: 6px !important;
+  width: auto !important;
+}
+
+.btn-close-inspector {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-size: 16px;
+  cursor: pointer;
+  margin-left: auto;
+  pointer-events: auto;
+}
+
+.btn-close-inspector:hover {
+  color: #fff;
+}
+
+/* Modal de Ayuda y Guía */
+.help-sections-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.help-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.help-card-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #38bdf8;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.help-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+kbd {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: #00ffaa;
+  box-shadow: 0 2px 0 #0f172a;
+}
+
+.dot-legend {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 4px;
+}
+
+.dot-safe { background: rgb(0, 204, 0); box-shadow: 0 0 6px rgb(0, 204, 0); }
+.dot-mod { background: rgb(230, 230, 0); box-shadow: 0 0 6px rgb(230, 230, 0); }
+.dot-crit { background: rgb(230, 0, 0); box-shadow: 0 0 6px rgb(230, 0, 0); }
+
+/* Notificaciones Toast (Heurística 1: Visibilidad del Sistema) */
+.toast-container {
+  position: fixed;
+  top: 70px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 9999;
+  pointer-events: none;
+  width: 90%;
+  max-width: 420px;
+}
+
+.toast-message {
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-left: 4px solid #38bdf8;
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: var(--font-mono);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  transform: translateY(-10px);
+  animation: toastIn 0.3s forwards cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: auto;
+}
+
+.toast-message.toast-success { border-left-color: #10b981; }
+.toast-message.toast-error { border-left-color: #ef4444; }
+.toast-message.toast-warn { border-left-color: #f59e0b; }
+
+@keyframes toastIn {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes toastOut {
+  to {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}
+
+/* ===================================================================
+   RESPONSIVIDAD Y ADAPTACIÓN MÓVIL (MOBILE-FIRST POLISH)
+   =================================================================== */
+
+/* Pantallas medianas (Tablets y Laptops pequeñas: <= 1024px) */
+@media (max-width: 1024px) {
+  .app-header {
+    padding: 0 12px;
+  }
+
+  .title-group h1 {
+    font-size: 13px;
+  }
+
+  .dem-tag {
+    display: none;
+  }
+
+  .telemetry-sidebar {
+    width: 300px;
+  }
+
+  .viewport-toolbar {
+    max-width: 92vw;
+    overflow-x: auto;
+  }
+}
+
+/* Pantallas móviles y tablets portrait (<= 768px) */
+@media (max-width: 768px) {
+  body {
+    height: 100vh;
+    height: 100dvh; /* Soporte para dynamic viewport en iOS/Android */
+  }
+
+  .app-header {
+    height: auto;
+    min-height: 54px;
+    padding: 8px 10px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .header-left {
+    gap: 8px;
+  }
+
+  .logo-badge {
+    width: 30px;
+    height: 30px;
+  }
+
+  .title-group h1 {
+    font-size: 12px;
+  }
+
+  .subtitle {
+    display: none;
+  }
+
+  .model-selector-bar {
+    order: 3;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding: 4px 6px;
+    justify-content: flex-start;
+  }
+
+  .model-selector-bar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .model-pills {
+    flex-shrink: 0;
+  }
+
+  .model-pill {
+    padding: 6px 12px;
+    min-height: 36px;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+
+  .btn-info {
+    min-height: 36px;
+    padding: 6px 10px;
+    white-space: nowrap;
+  }
+
+  .header-right {
+    margin-left: auto;
+  }
+
+  .alert-status-box {
+    padding: 3px 8px;
+  }
+
+  .status-title {
+    font-size: 10px;
+  }
+
+  .status-sub {
+    font-size: 9px;
+  }
+
+  /* Barra de herramientas flotante en móvil */
+  .viewport-toolbar {
+    top: 8px;
+    right: 8px;
+    padding: 4px 6px;
+    gap: 4px;
+    max-width: calc(100vw - 16px);
+    overflow-x: auto;
+  }
+
+  .tool-btn {
+    padding: 5px 7px;
+    font-size: 10px;
+    min-height: 34px;
+  }
+
+  .toolbar-slider-group {
+    display: none; /* En móvil se simplifica para ahorrar espacio */
+  }
+
+  /* HUD Overlays adaptativos */
+  .hud-overlay-geo {
+    top: 50px;
+    left: 8px;
+    padding: 6px 10px;
+    max-width: 200px;
+  }
+
+  .hud-row {
+    font-size: 10px;
+    gap: 8px;
+  }
+
+  .hud-inspector-card {
+    top: 50px;
+    right: 8px;
+    left: auto;
+    bottom: auto;
+    max-width: 220px;
+    padding: 8px 10px;
+  }
+
+  .risk-legend-box {
+    bottom: 110px;
+    right: 8px;
+    width: 230px;
+    padding: 6px 10px;
+  }
+
+  .legend-labels {
+    font-size: 8px;
+  }
+
+  /* Barra de Reproducción Temporal Responsiva en 2 filas */
+  .timeline-player-bar {
+    height: auto;
+    min-height: 94px;
+    padding: 8px 12px;
+    flex-direction: column;
+    gap: 6px;
+    background: rgba(8, 12, 19, 0.98);
+  }
+
+  .player-controls {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .ctrl-btn {
+    width: 38px;
+    height: 38px;
+  }
+
+  .btn-play {
+    width: 42px;
+    height: 42px;
+  }
+
+  .speed-selector {
+    margin-left: 0;
+  }
+
+  .speed-btn {
+    padding: 6px 8px;
+    font-size: 11px;
+    min-height: 34px;
+  }
+
+  .timeline-slider-wrapper {
+    width: 100%;
+  }
+
+  .time-meta-row {
+    font-size: 10px;
+  }
+
+  .timestamp-bold {
+    font-size: 11px;
+  }
+
+  .utc-tag {
+    display: none;
+  }
+
+  .custom-slider {
+    height: 8px;
+  }
+
+  .custom-slider::-webkit-slider-thumb {
+    width: 22px;
+    height: 22px;
+  }
+
+  .timeline-actions {
+    display: none; /* En móvil se accede por botón modal o se oculta */
+  }
+
+  /* Sidebar en formato Drawer Deslizable sobre la pantalla */
+  .telemetry-sidebar {
+    position: fixed;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 88vw;
+    max-width: 360px;
+    margin-bottom: 0;
+    z-index: 1000;
+    box-shadow: -10px 0 30px rgba(0, 0, 0, 0.8);
+    transform: translateX(100%);
+  }
+
+  .telemetry-sidebar:not(.collapsed) {
+    transform: translateX(0);
+  }
+
+  .telemetry-sidebar.collapsed {
+    transform: translateX(100%);
+  }
+}
+
+/* Teléfonos móviles pequeños (<= 480px) */
+@media (max-width: 480px) {
+  .logo-badge {
+    display: none;
+  }
+
+  .title-group h1 {
+    font-size: 11px;
+  }
+
+  .alert-status-box {
+    display: none; /* En pantallas diminutas se prioriza el espacio */
+  }
+
+  .modal-dialog {
+    width: 96vw;
+    padding: 0;
+  }
+
+  .modal-header {
+    padding: 12px 16px;
+  }
+
+  .modal-body {
+    padding: 14px 16px;
+  }
+
+  .help-sections-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .hidden {
   display: none !important;
 }

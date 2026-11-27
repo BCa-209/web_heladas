@@ -50,11 +50,17 @@
           <span class="dot svm"></span> 04_SVM
         </button>
       </div>
-      <button class="btn-info" id="btnModelMetrics" title="Ver métricas y comparativa de modelos">
+      <button class="btn-info" id="btnModelMetrics" title="Ver métricas y comparativa de modelos (Heurística 6 y 10)">
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>
         </svg>
-        <span>Métricas de Modelos</span>
+        <span class="btn-label-text">Métricas</span>
+      </button>
+      <button class="btn-info btn-help" id="btnOpenHelp" title="Guía de uso, gestos táctiles y atajos de teclado (Heurística 10)">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+        <span class="btn-label-text">Ayuda</span>
       </button>
     </div>
 
@@ -131,31 +137,39 @@
       </div>
 
       <!-- HUD Flotante de Coordenadas en Vivo (Top-Left) -->
-      <div class="hud-overlay-geo">
-        <div class="hud-tag">TELEMETRÍA ESPACIAL DE COORDENADAS (01_XGBoost)</div>
-        <div class="hud-row">
-          <span class="hud-lbl">ÁREA (LAT):</span>
-          <span class="hud-val">-18.0000° a -13.0000° S</span>
+      <div class="hud-overlay-geo" id="hudOverlayGeo">
+        <div class="hud-header-bar">
+          <span class="hud-tag">TELEMETRÍA ESPACIAL DE COORDENADAS</span>
+          <button class="btn-hud-min" id="btnToggleHudGeo" title="Minimizar / Expandir telemetría">
+            <span class="min-icon">−</span>
+          </button>
         </div>
-        <div class="hud-row">
-          <span class="hud-lbl">ÁREA (LON):</span>
-          <span class="hud-val">-72.0000° a -68.0000° O</span>
-        </div>
-        <div class="hud-row">
-          <span class="hud-lbl">COTA ELEVACIÓN:</span>
-          <span class="hud-val" id="hudElevationRange">3,812 m — 5,400 m</span>
-        </div>
-        <div class="hud-row">
-          <span class="hud-lbl">RESOLUCIÓN DE MALLA:</span>
-          <span class="hud-val">128 × 128 (16,384 vértices)</span>
+        <div class="hud-body" id="hudGeoBody">
+          <div class="hud-row">
+            <span class="hud-lbl">ÁREA (LAT):</span>
+            <span class="hud-val">-18.0000° a -13.0000° S</span>
+          </div>
+          <div class="hud-row">
+            <span class="hud-lbl">ÁREA (LON):</span>
+            <span class="hud-val">-72.0000° a -68.0000° O</span>
+          </div>
+          <div class="hud-row">
+            <span class="hud-lbl">COTA ELEVACIÓN:</span>
+            <span class="hud-val" id="hudElevationRange">3,812 m — 5,400 m</span>
+          </div>
+          <div class="hud-row">
+            <span class="hud-lbl">RESOLUCIÓN DE MALLA:</span>
+            <span class="hud-val">128 × 128 (16,384 vértices)</span>
+          </div>
         </div>
       </div>
 
-      <!-- HUD Flotante de Inspección de Cursor (Hover Inspector) -->
+      <!-- HUD Flotante de Inspección de Cursor / Toque Táctil -->
       <div class="hud-inspector-card" id="hudInspector">
         <div class="inspector-header">
           <span class="inspector-dot"></span>
           <span>SONDAJE EN PUNTO VIRTUAL</span>
+          <button class="btn-close-inspector" id="btnCloseInspector" title="Cerrar sondaje">&times;</button>
         </div>
         <div class="inspector-grid">
           <div><span class="lbl">Lat:</span> <span class="val" id="inspLat">-15.4988°</span></div>
@@ -166,22 +180,27 @@
       </div>
 
       <!-- Leyenda de Riesgo (Bottom-Right en Canvas) -->
-      <div class="risk-legend-box">
-        <div class="legend-header">ESCALA DE PROBABILIDAD DE HELADA</div>
-        <div class="legend-gradient"></div>
-        <div class="legend-ticks">
-          <span>0%</span>
-          <span>20%</span>
-          <span>40%</span>
-          <span>60%</span>
-          <span>80%</span>
-          <span>100%</span>
+      <div class="risk-legend-box" id="riskLegendBox">
+        <div class="legend-header-bar">
+          <span class="legend-header">ESCALA DE PROBABILIDAD DE HELADA</span>
+          <button class="btn-hud-min" id="btnToggleLegend" title="Minimizar / Expandir leyenda">
+            <span class="min-icon">−</span>
+          </button>
         </div>
-        <div class="legend-labels">
-          <span class="leg-safe">Seguro</span>
-          <span class="leg-alert">Alerta</span>
-          <span class="leg-mod">Helada Moderada</span>
-          <span class="leg-crit">Helada Crítica</span>
+        <div class="legend-body" id="legendBody">
+          <div class="legend-gradient"></div>
+          <div class="legend-ticks">
+            <span>0%</span>
+            <span>25%</span>
+            <span>50%</span>
+            <span>75%</span>
+            <span>100%</span>
+          </div>
+          <div class="legend-labels">
+            <span class="leg-safe">Seguro (&lt;50%)</span>
+            <span class="leg-mod">Alerta (50%)</span>
+            <span class="leg-crit">Crítica (&gt;50%)</span>
+          </div>
         </div>
       </div>
     </div>
@@ -323,6 +342,67 @@
       </div>
     </div>
   </div>
+
+  <!-- Modal de Guía de Uso y Ayuda (Heurística 10 de Nielsen) -->
+  <div class="modal-backdrop hidden" id="modalHelp">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <h2>GUÍA DE USO Y HEURÍSTICAS DE INTERACCIÓN</h2>
+          <p>Manual interactivo para exploración del relieve 3D en computadoras y dispositivos móviles</p>
+        </div>
+        <button class="modal-close-btn" id="btnCloseHelpModal">&times;</button>
+      </div>
+      
+      <div class="modal-body">
+        <div class="help-sections-grid">
+          <div class="help-card">
+            <div class="help-card-title">📱 Navegación Táctil (Móviles)</div>
+            <ul class="help-list">
+              <li><strong>1 dedo (deslizar):</strong> Rotación 3D libre alrededor de la cordillera.</li>
+              <li><strong>2 dedos (pellizcar):</strong> Acercar o alejar el zoom de la topografía.</li>
+              <li><strong>2 dedos (deslizar):</strong> Desplazamiento panorámico (Pan).</li>
+              <li><strong>Toque simple (Tap):</strong> Sondar cualquier montaña o valle para ver Latitud, Longitud, Altura (m) y Riesgo de helada.</li>
+            </ul>
+          </div>
+
+          <div class="help-card">
+            <div class="help-card-title">💻 Atajos de Teclado (PC / Laptop)</div>
+            <ul class="help-list">
+              <li><kbd>Espacio</kbd> : Iniciar / Pausar reproducción temporal.</li>
+              <li><kbd>→</kbd> / <kbd>D</kbd> : Avanzar 1 hora de simulación.</li>
+              <li><kbd>←</kbd> / <kbd>A</kbd> : Retroceder 1 hora de simulación.</li>
+              <li><kbd>W</kbd> : Activar modo Malla Wireframe (PyOpenGL clásico).</li>
+              <li><kbd>S</kbd> : Activar modo Superficie Sombreada.</li>
+              <li><kbd>R</kbd> : Restablecer la cámara a la posición inicial.</li>
+              <li><kbd>Esc</kbd> : Cerrar ventanas modales o búsquedas.</li>
+            </ul>
+          </div>
+
+          <div class="help-card">
+            <div class="help-card-title">🌡️ Escala de Probabilidad de Helada</div>
+            <ul class="help-list">
+              <li><span class="dot-legend dot-safe"></span> <strong>Verde (&lt;50%):</strong> Condiciones térmicas seguras; baja probabilidad de congelación.</li>
+              <li><span class="dot-legend dot-mod"></span> <strong>Amarillo (50%):</strong> Zona de alerta; inicio de enfriamiento radiativo andino.</li>
+              <li><span class="dot-legend dot-crit"></span> <strong>Rojo (&gt;50%):</strong> Helada crítica severa; temperaturas bajo cero y riesgo agrícola alto.</li>
+            </ul>
+          </div>
+
+          <div class="help-card">
+            <div class="help-card-title">⚡ Acciones Rápidas</div>
+            <ul class="help-list">
+              <li><strong>Pico Crítico:</strong> Salta en 1 clic a la hora de máxima severidad de helada registrada en el evento.</li>
+              <li><strong>Z-Scale:</strong> Exagera el relieve vertical de $0.5\times$ a $4.0\times$ para acentuar quebradas y mesetas.</li>
+              <li><strong>Búsqueda:</strong> Escribe cualquier hora o fecha (Ej: <code>2020-06-15 05:00:00</code>) y pulsa <kbd>Enter</kbd>.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contenedor de Notificaciones Toast (Heurística 1: Visibilidad del Sistema) -->
+  <div id="toastContainer" class="toast-container" aria-live="polite"></div>
 
   <!-- Scripts: Three.js, Controls, Leaflet y App -->
   <script src="libs/three.min.js"></script>
