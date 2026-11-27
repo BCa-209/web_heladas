@@ -16,7 +16,7 @@
     playInterval: null,
     playSpeed: 1000, // ms por frame (1x)
     renderMode: 'shaded', // 'shaded' | 'wireframe' | 'contour'
-    exaggeration: 2.0,
+    exaggeration: 1.0,
     autoRotate: false,
     hoveredPoint: null
   };
