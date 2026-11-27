@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema Geoespacial 3D • Predicción de Heladas en el Altiplano</title>
+  
+  <!-- Estilos Leaflet y Fuentes -->
+  <link rel="stylesheet" href="libs/leaflet.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Estilos de la Aplicación -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Header Principal -->
+  <header class="app-header">
+    <div class="header-left">
+      <div class="logo-badge">
+        <span class="radar-ping"></span>
+        <svg class="frost-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2v20M2 12h20M4.93 4.93l14.14 14.14M4.93 19.07l14.14-14.14"/>
+        </svg>
+      </div>
+      <div class="title-group">
+        <h1>SISTEMA VISUALIZADOR 3D DE HELADAS</h1>
+        <div class="subtitle">
+          <span class="region-tag">ALTIPLANO • PUNO / JULIACA (PERÚ)</span>
+          <span class="dem-tag">DEM SRTM 1-ARC (3,812m - 5,400m)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Selector de Modelos -->
+    <div class="model-selector-bar">
+      <span class="selector-label">MODELO:</span>
+      <div class="model-pills" id="modelPills">
+        <button class="model-pill active" data-model="xgboost">
+          <span class="dot xgb"></span> 01_XGBoost
+        </button>
+        <button class="model-pill" data-model="rf">
+          <span class="dot rf"></span> 02_Random_Forest
+        </button>
+        <button class="model-pill" data-model="lstm">
+          <span class="dot lstm"></span> 03_LSTM_Network
+        </button>
+        <button class="model-pill" data-model="svm">
+          <span class="dot svm"></span> 04_SVM
+        </button>
+      </div>
+      <button class="btn-info" id="btnModelMetrics" title="Ver métricas y comparativa de modelos">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>
+        </svg>
+        <span>Métricas de Modelos</span>
+      </button>
+    </div>
+
+    <!-- Telemetría Rápida Header -->
+    <div class="header-right">
+      <div class="alert-status-box" id="globalAlertBadge">
+        <span class="status-indicator"></span>
+        <div class="status-texts">
+          <span class="status-title" id="statusTitle">RIESGO MODERADO</span>
+          <span class="status-sub" id="statusPeakProb">Prob. Pico: 45.2%</span>
+        </div>
+      </div>
+      <button class="btn-icon" id="btnToggleSidebar" title="Alternar panel lateral de telemetría">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M15 3v18"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Contenedor Principal -->
+  <main class="app-main">
+    <!-- Viewport 3D (WebGL) -->
+    <div class="viewport-container" id="viewportContainer">
+      <canvas id="webglCanvas"></canvas>
+
+      <!-- Superposiciones del Viewport 3D -->
+      <!-- Barra de Herramientas de Cámara y Renderizado -->
+      <div class="viewport-toolbar">
+        <div class="toolbar-group">
+          <button class="tool-btn active" id="modeShaded" title="Modo Superficie Sombreada con Iluminación Solar">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 3l9 18H3L12 3z"/></svg>
+            Sombreado
+          </button>
+          <button class="tool-btn" id="modeWireframe" title="Modo Malla Wireframe (Estilo PyOpenGL clásico de renderer.py)">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v18H3zM3 9h18M3 15h18M9 3v18M15 3v18"/></svg>
+            Wireframe
+          </button>
+          <button class="tool-btn" id="modeContour" title="Modo Curvas de Nivel / Hipsométrico">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="2"/></svg>
+            Relieve
+          </button>
+        </div>
+
+        <div class="toolbar-divider"></div>
+
+        <div class="toolbar-group">
+          <button class="tool-btn" id="camPreset3D" title="Perspectiva 3D Libre">Persp. 3D</button>
+          <button class="tool-btn" id="camPresetTop" title="Vista Cenital Superior (2D Norte Arriba)">Cenital</button>
+          <button class="tool-btn" id="camPresetSide" title="Perfil Lateral de Relieve">Perfil</button>
+        </div>
+
+        <div class="toolbar-divider"></div>
+
+        <!-- Controles de Exageración y Rotación -->
+        <div class="toolbar-slider-group">
+          <label for="exaggerationSlider" title="Factor de Exageración Vertical del Relieve">Z-Scale: <span id="exagVal">2.0x</span></label>
+          <input type="range" id="exaggerationSlider" min="0.5" max="4.0" step="0.1" value="2.0">
+        </div>
+
+        <div class="toolbar-group">
+          <button class="tool-btn" id="btnAutoRotate" title="Activar/Pausar Auto-rotación">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 11-.57-8.38l5.67-5.67"/></svg>
+            Rotar
+          </button>
+          <button class="tool-btn" id="btnResetView" title="Restablecer posición de cámara">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1018 0 9 9 0 00-18 0z"/><path d="M12 8v4l3 3"/></svg>
+            Reset
+          </button>
+          <button class="tool-btn" id="btnScreenshot" title="Descargar captura en alta resolución">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- HUD Flotante de Coordenadas en Vivo (Top-Left) -->
+      <div class="hud-overlay-geo">
+        <div class="hud-tag">TELEMETRÍA ESPACIAL DE COORDENADAS</div>
+        <div class="hud-row">
+          <span class="hud-lbl">LATITUD:</span>
+          <span class="hud-val">-16.0000° a -15.0000° S</span>
+        </div>
+        <div class="hud-row">
+          <span class="hud-lbl">LONGITUD:</span>
+          <span class="hud-val">-71.0000° a -70.0000° O</span>
+        </div>
+        <div class="hud-row">
+          <span class="hud-lbl">COTA ELEVACIÓN:</span>
+          <span class="hud-val" id="hudElevationRange">3,812 m — 5,400 m</span>
+        </div>
+        <div class="hud-row">
+          <span class="hud-lbl">RESOLUCIÓN DE MALLA:</span>
+          <span class="hud-val">128 × 128 (16,384 vértices)</span>
+        </div>
+      </div>
+
+      <!-- HUD Flotante de Inspección de Cursor (Hover Inspector) -->
+      <div class="hud-inspector-card" id="hudInspector">
+        <div class="inspector-header">
+          <span class="inspector-dot"></span>
+          <span>SONDAJE EN PUNTO VIRTUAL</span>
+        </div>
+        <div class="inspector-grid">
+          <div><span class="lbl">Lat:</span> <span class="val" id="inspLat">-15.4988°</span></div>
+          <div><span class="lbl">Lon:</span> <span class="val" id="inspLon">-70.1333°</span></div>
+          <div><span class="lbl">Altitud:</span> <span class="val" id="inspAlt">3,825 m</span></div>
+          <div><span class="lbl">Riesgo:</span> <span class="val risk-pill" id="inspRisk">Bajo (12%)</span></div>
+        </div>
+      </div>
+
+      <!-- Leyenda de Riesgo (Bottom-Right en Canvas) -->
+      <div class="risk-legend-box">
+        <div class="legend-header">ESCALA DE PROBABILIDAD DE HELADA</div>
+        <div class="legend-gradient"></div>
+        <div class="legend-ticks">
+          <span>0%</span>
+          <span>20%</span>
+          <span>40%</span>
+          <span>60%</span>
+          <span>80%</span>
+          <span>100%</span>
+        </div>
+        <div class="legend-labels">
+          <span class="leg-safe">Seguro</span>
+          <span class="leg-alert">Alerta</span>
+          <span class="leg-mod">Helada Moderada</span>
+          <span class="leg-crit">Helada Crítica</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Barra de Control Temporal y Reproductor (Bottom Bar) -->
+    <div class="timeline-player-bar">
+      <!-- Controles de Playback -->
+      <div class="player-controls">
+        <button class="ctrl-btn" id="btnPrevFrame" title="Hora anterior (Tecla Izquierda / A)">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M19 20L9 12l10-8v16zM5 19V5h2v14H5z"/></svg>
+        </button>
+        <button class="ctrl-btn btn-play" id="btnPlayPause" title="Reproducir / Pausar evolución temporal (Espacio)">
+          <svg id="playIcon" viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          <svg id="pauseIcon" class="hidden" viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+        </button>
+        <button class="ctrl-btn" id="btnNextFrame" title="Siguiente hora (Tecla Derecha / D)">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M5 4l10 8-10 8V4zm14 1v14h-2V5h2z"/></svg>
+        </button>
+        
+        <!-- Velocidad -->
+        <div class="speed-selector">
+          <button class="speed-btn active" data-speed="1">1x</button>
+          <button class="speed-btn" data-speed="2">2x</button>
+          <button class="speed-btn" data-speed="5">5x</button>
+        </div>
+      </div>
+
+      <!-- Scrubbing Slider -->
+      <div class="timeline-slider-wrapper">
+        <div class="time-meta-row">
+          <div class="time-readout">
+            <span class="label">FECHA / HORA REGISTRADA:</span>
+            <span class="timestamp-bold" id="currentTimestamp">2020-04-16 05:00:00</span>
+            <span class="utc-tag" id="currentLocalTime">(00:00 Hora Local Puno UTC-5)</span>
+          </div>
+          <div class="frame-counter">
+            <span id="currentFrameIndex">1</span> de <span id="totalFrames">36</span> horas de simulación
+          </div>
+        </div>
+        <input type="range" id="timelineSlider" min="0" max="35" value="0" class="custom-slider">
+      </div>
+
+      <!-- Búsqueda Rápida & Acciones -->
+      <div class="timeline-actions">
+        <div class="search-box">
+          <input type="text" id="inputSearchDate" placeholder="Buscar fecha (Ej: 05:00)..." title="Presiona ENTER para buscar igual que en renderer.py">
+          <button id="btnSearchDate" title="Buscar fecha">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          </button>
+        </div>
+        <button class="btn-jump-peak" id="btnJumpPeak" title="Saltar al momento de máxima intensidad de helada">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          Pico Crítico
+        </button>
+      </div>
+    </div>
+
+    <!-- Panel Lateral de Telemetría y Análisis (Sidebar Derecha) -->
+    <aside class="telemetry-sidebar" id="telemetrySidebar">
+      <div class="sidebar-header">
+        <div class="side-title">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"/></svg>
+          TELEMETRÍA METEOROLÓGICA
+        </div>
+        <button class="btn-close-side" id="btnCloseSidebar">&times;</button>
+      </div>
+
+      <div class="sidebar-scrollable">
+        <!-- Tarjeta de Métricas en Tiempo Real -->
+        <div class="metric-card">
+          <div class="card-title">ESTADO DE RIESGO ACTUAL</div>
+          
+          <div class="gauge-grid">
+            <div class="gauge-item">
+              <span class="g-label">Riesgo Máximo</span>
+              <span class="g-val g-red" id="statMaxRisk">93.9%</span>
+              <div class="g-bar"><div class="g-fill fill-red" id="barMaxRisk" style="width: 93.9%;"></div></div>
+            </div>
+            <div class="gauge-item">
+              <span class="g-label">Riesgo Promedio</span>
+              <span class="g-val g-amber" id="statMeanRisk">38.4%</span>
+              <div class="g-bar"><div class="g-fill fill-amber" id="barMeanRisk" style="width: 38.4%;"></div></div>
+            </div>
+            <div class="gauge-item">
+              <span class="g-label">Área en Alerta Crítica</span>
+              <span class="g-val g-purple" id="statCriticalPct">42.8%</span>
+              <div class="g-bar"><div class="g-fill fill-purple" id="barCriticalPct" style="width: 42.8%;"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mini-Mapa 2D Regional -->
+        <div class="metric-card">
+          <div class="card-title-row">
+            <span>MAPA 2D REGIONAL (ALTIPLANO)</span>
+            <span class="sync-badge">SINCRONIZADO</span>
+          </div>
+          <div id="miniMap" class="mini-map-box"></div>
+          <div class="map-legend-hint">
+            <span class="box-legend-symbol"></span> Recuadro DEM 3D Activo
+          </div>
+        </div>
+
+        <!-- Diagnóstico del Modelo Seleccionado -->
+        <div class="metric-card">
+          <div class="card-title">DIAGNÓSTICO DEL MODELO ACTIVO</div>
+          <div class="model-info-block" id="modelActiveDetails">
+            <!-- Inyectado dinámicamente -->
+          </div>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <!-- Modal de Comparativa de Modelos y Métricas -->
+  <div class="modal-backdrop hidden" id="modalMetrics">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <h2>COMPARATIVA DE LOS 4 MODELOS EVALUADOS</h2>
+          <p>Evaluación y métricas de desempeño de los modelos de predicción de heladas en Puno</p>
+        </div>
+        <button class="modal-close-btn" id="btnCloseModal">&times;</button>
+      </div>
+      
+      <div class="modal-body">
+        <div class="models-comparison-grid" id="modelsComparisonGrid">
+          <!-- Inyectado dinámicamente -->
+        </div>
+
+        <div class="metrics-glossary">
+          <h4>Glosario de Indicadores Científicos:</h4>
+          <ul>
+            <li><strong>CSI (Critical Success Index):</strong> Métrica estándar de la OMM para eventos raros como heladas. Mide aciertos penalizando falsas alarmas y fallos.</li>
+            <li><strong>ROC-AUC:</strong> Capacidad del clasificador para discriminar entre ocurrencia y no ocurrencia de helada a cualquier umbral.</li>
+            <li><strong>Brier Score:</strong> Error cuadrático de las probabilidades pronosticadas (valores cercanos a 0 representan perfecta calibración).</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts: Three.js, Controls, Leaflet y App -->
+  <script src="libs/three.min.js"></script>
+  <script src="libs/OrbitControls.js"></script>
+  <script src="libs/leaflet.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
