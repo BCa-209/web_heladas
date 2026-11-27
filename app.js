@@ -87,25 +87,20 @@
   let raycaster, mouse;
   let miniMap = null, mapDemBox = null, mapPointsLayer = null;
 
-  // Paleta de Color de Riesgo (RGB)
-  const COLOR_SAFE = new THREE.Color(0x10b981);    // Verde Esmeralda (<0.2)
-  const COLOR_LOW = new THREE.Color(0x84cc16);     // Verde Lima (0.2-0.4)
-  const COLOR_MOD = new THREE.Color(0xeab308);     // Amarillo (0.4-0.6)
-  const COLOR_HIGH = new THREE.Color(0xf97316);    // Naranja (0.6-0.8)
-  const COLOR_CRIT = new THREE.Color(0xef4444);    // Rojo Carmesí (>0.8)
+  // Paleta de Color de Riesgo IDÉNTICA al Fragment Shader de Modelos/01_XGBoost/renderer.py
+  // low_risk = vec3(0.0, 0.8, 0.0)    -> Verde (Seguro)
+  // mid_risk = vec3(0.9, 0.9, 0.0)    -> Amarillo (Alerta)
+  // high_risk = vec3(0.9, 0.0, 0.0)   -> Rojo (Helada Crítica)
+  const COLOR_LOW_RISK = new THREE.Color(0.0, 0.8, 0.0);
+  const COLOR_MID_RISK = new THREE.Color(0.9, 0.9, 0.0);
+  const COLOR_HIGH_RISK = new THREE.Color(0.9, 0.0, 0.0);
 
   function interpolateRiskColor(prob) {
     const c = new THREE.Color();
-    if (prob <= 0.2) {
-      c.copy(COLOR_SAFE).lerp(COLOR_LOW, prob / 0.2);
-    } else if (prob <= 0.4) {
-      c.copy(COLOR_LOW).lerp(COLOR_MOD, (prob - 0.2) / 0.2);
-    } else if (prob <= 0.6) {
-      c.copy(COLOR_MOD).lerp(COLOR_HIGH, (prob - 0.4) / 0.2);
-    } else if (prob <= 0.8) {
-      c.copy(COLOR_HIGH).lerp(COLOR_CRIT, (prob - 0.6) / 0.2);
+    if (prob < 0.5) {
+      c.copy(COLOR_LOW_RISK).lerp(COLOR_MID_RISK, prob * 2.0);
     } else {
-      c.copy(COLOR_CRIT).lerp(new THREE.Color(0xff0055), (prob - 0.8) / 0.2);
+      c.copy(COLOR_MID_RISK).lerp(COLOR_HIGH_RISK, (prob - 0.5) * 2.0);
     }
     return c;
   }
@@ -472,10 +467,11 @@
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors'
     }).addTo(miniMap);
 
-    // Polígono del DEM 3D activo
+    // Polígono del área de predicción idéntica a Modelos/01_XGBoost/renderer.py
+    // ÁREA (LAT): -18.0000° a -13.0000° | (LON): -72.0000° a -68.0000°
     const bounds = [
-      [-16.0, -71.0], // Suroeste
-      [-15.0, -70.0]  // Noreste
+      [-18.0, -72.0], // Suroeste
+      [-13.0, -68.0]  // Noreste
     ];
 
     mapDemBox = L.rectangle(bounds, {

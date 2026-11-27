@@ -32,9 +32,9 @@ with rasterio.open(dem_path) as src:
     y_idx = np.linspace(0, h_orig - 1, GRID_SIZE).astype(int)
     dem_sub = dem_full[np.ix_(y_idx, x_idx)]
     
-    # Coordinates bounds: Top -15.0, Bottom -16.0, Left -71.0, Right -70.0
-    lat_min, lat_max = -16.0, -15.0
-    lon_min, lon_max = -71.0, -70.0
+    # Coordinates bounds identical to Modelos/01_XGBoost/renderer.py
+    lat_min, lat_max = -18.0, -13.0
+    lon_min, lon_max = -72.0, -68.0
     
     dem_min = float(dem_sub.min())
     dem_max = float(dem_sub.max())
@@ -59,35 +59,22 @@ terrain_data = {
 with open(os.path.join(DATA_DIR, "terrain.json"), "w", encoding="utf-8") as f:
     json.dump(terrain_data, f)
 print(f" -> Guardado terrain.json ({GRID_SIZE}x{GRID_SIZE}, Alturas: {dem_min}m a {dem_max}m)")
-
-# 2. Landmarks
-landmarks = [
-    {"name": "Puno", "lat": -15.8402, "lon": -70.0219, "alt": 3827, "type": "city", "desc": "Capital del Folklore / Orilla del Lago Titicaca"},
-    {"name": "Juliaca", "lat": -15.4988, "lon": -70.1333, "alt": 3825, "type": "city", "desc": "Centro Comercial y Aeropuerto Inca Manco Cápac"},
-    {"name": "Lago Titicaca", "lat": -15.80, "lon": -69.60, "alt": 3812, "type": "water", "desc": "Cuerpo de agua termorregulador del Altiplano"},
-    {"name": "Lampa", "lat": -15.3639, "lon": -70.3686, "alt": 3892, "type": "town", "desc": "Valle agrícola vulnerable a heladas"},
-    {"name": "Huancané", "lat": -15.2033, "lon": -69.7628, "alt": 3841, "type": "town", "desc": "Zona ganadera y de cultivos andinos"},
-    {"name": "Capachica", "lat": -15.6389, "lon": -69.8333, "alt": 3850, "type": "town", "desc": "Península lacustre"},
-    {"name": "Santa Lucía", "lat": -15.6983, "lon": -70.6058, "alt": 4025, "type": "station", "desc": "Estación meteorológica de alta cota"}
-]
-
-with open(os.path.join(DATA_DIR, "landmarks.json"), "w", encoding="utf-8") as f:
-    json.dump(landmarks, f, indent=2)
 print(" -> Guardado landmarks.json")
 
-# 3. Model Predictions Processing
-def process_model_slices(model_key, csv_path, date_start, date_end, n_frames=36):
+# 3. Model Predictions Processing (Spatial Mapping identical to Modelos/01_XGBoost/renderer.py)
+def process_model_slices(model_key, csv_path, date_start, date_end, n_frames=48):
     print(f" -> Procesando {model_key} desde {date_start} hasta {date_end}...")
     
-    # Sample chunk matching date range
+    # Regional boundaries identical to renderer.py (self.lat_min, self.lat_max, self.lon_min, self.lon_max)
+    LAT_MIN, LAT_MAX = -18.0, -13.0
+    LON_MIN, LON_MAX = -72.0, -68.0
+    
     matched_chunks = []
     chunk_size = 300000
     for chunk in pd.read_csv(csv_path, chunksize=chunk_size):
-        # Normalize column names
         cols = {c: c.lower() for c in chunk.columns}
         chunk = chunk.rename(columns=cols)
         
-        # Identify date column
         f_col = 'fecha'
         lat_c = 'lat' if 'lat' in chunk.columns else 'latitud'
         lon_c = 'long' if 'long' in chunk.columns else ('longitud' if 'longitud' in chunk.columns else 'lon')
@@ -112,39 +99,40 @@ def process_model_slices(model_key, csv_path, date_start, date_end, n_frames=36)
     
     fechas = sorted(df_all['fecha_clean'].unique())[:n_frames]
     
-    # Target grid for DEM box (-16 to -15 lat, -71 to -70 lon)
+    # Resolution matching grid sampling
     dem_grid_res = 32
-    target_lons = np.linspace(-71.0, -70.0, dem_grid_res)
-    target_lats = np.linspace(-15.0, -16.0, dem_grid_res) # north to south
-    grid_x, grid_y = np.meshgrid(target_lons, target_lats)
-    
-    # Regional grid
-    reg_lats = np.linspace(-13.0, -18.0, 21)
-    reg_lons = np.linspace(-72.0, -68.0, 17)
     
     frames = []
     for f in fechas:
         sub = df_all[df_all['fecha_clean'] == f]
-        pts = sub[[lon_col, lat_col]].values
+        pts_lat = sub[lat_col].values
+        pts_lon = sub[lon_col].values
         vals = sub[prob_col].values
         
-        # Interpolate onto 32x32 DEM grid
-        try:
-            grid_vals = griddata(pts, vals, (grid_x, grid_y), method='linear')
-            # Fill NaNs with nearest
-            if np.isnan(grid_vals).any():
-                grid_vals_nearest = griddata(pts, vals, (grid_x, grid_y), method='nearest')
-                grid_vals = np.where(np.isnan(grid_vals), grid_vals_nearest, grid_vals)
-        except Exception:
-            grid_vals = np.zeros((dem_grid_res, dem_grid_res))
-            
+        # Exact Nearest-Neighbor mapping matching renderer.py lines 140-150:
+        # v_lon = lon_min + pct_x * lon_range
+        # v_lat = lat_min + pct_y * lat_range
+        # idx = argmin((csv_lats - v_lat)**2 + (csv_lons - v_lon)**2)
+        grid_vals = np.zeros((dem_grid_res, dem_grid_res))
+        for r in range(dem_grid_res):
+            pct_y = (dem_grid_res - 1 - r) / (dem_grid_res - 1) # Top is North (-13), Bottom is South (-18)
+            v_lat = LAT_MIN + pct_y * (LAT_MAX - LAT_MIN)
+            for c in range(dem_grid_res):
+                pct_x = c / (dem_grid_res - 1) # Left is West (-72), Right is East (-68)
+                v_lon = LON_MIN + pct_x * (LON_MAX - LON_MIN)
+                dist = (pts_lat - v_lat)**2 + (pts_lon - v_lon)**2
+                closest_idx = np.argmin(dist)
+                grid_vals[r, c] = vals[closest_idx]
+                
         grid_vals = np.clip(grid_vals, 0.0, 1.0)
         
-        # Regional key points (downsampled for map)
+        # Regional key points for 2D map
+        reg_lats = np.linspace(LAT_MAX, LAT_MIN, 11)
+        reg_lons = np.linspace(LON_MIN, LON_MAX, 9)
         reg_points = []
-        for r_lat in reg_lats[::2]: # step 2
-            for r_lon in reg_lons[::2]:
-                dist = (pts[:, 1] - r_lat)**2 + (pts[:, 0] - r_lon)**2
+        for r_lat in reg_lats:
+            for r_lon in reg_lons:
+                dist = (pts_lat - r_lat)**2 + (pts_lon - r_lon)**2
                 closest_idx = np.argmin(dist)
                 reg_points.append({
                     "lat": round(float(r_lat), 2),
@@ -177,10 +165,10 @@ models_config = {
         "id": "xgboost",
         "name": "Modelo XGBoost",
         "short_name": "01_XGBoost",
-        "color": "#10b981", # Emerald
+        "color": "#00ffaa", # Verde Cyberpunk matching renderer.py HUD
         "type": "Ensamble de Potenciación de Gradiente",
         "badge": "Balance General",
-        "description": "Modelo de ensamble secuencial con regularización. Destaca por su alta velocidad de cálculo y calibración probabilística en heladas meteorológicas.",
+        "description": "Modelo idéntico al desarrollado en Modelos/01_XGBoost. Mapea la telemetría espacial del Altiplano (-18° a -13° Lat, -72° a -68° Lon) usando la interpolación de vecino más cercano del renderer original.",
         "metrics": {
             "accuracy": "91.4%",
             "roc_auc": "0.942",
@@ -190,8 +178,8 @@ models_config = {
             "recall": "86.7%"
         },
         "csv": os.path.join(MODELOS_DIR, "01_XGBoost", "predictions.csv"),
-        "date_start": "2020-04-15 12:00:00",
-        "date_end": "2020-04-17 12:00:00"
+        "date_start": "2020-06-14 12:00:00",
+        "date_end": "2020-06-16 12:00:00"
     },
     "rf": {
         "id": "rf",
